@@ -47,6 +47,15 @@ class TransparentTitlebarTerminalWindow: TerminalWindow {
     override func update() {
         super.update()
 
+        // AppKit resets the titlebar background for a few frames after tabs are
+        // added or removed. Fix it before the frame is drawn so it never shows.
+        if #available(macOS 26.0, *) {
+            applyTahoeTitlebarStyle()
+            if #available(macOS 27.0, *) {
+                reduceTabBarBackgroundGoldenGate()
+            }
+        }
+
         // On macOS 13 to 15, we need to hide the NSVisualEffectView in order to allow our
         // titlebar to be truly transparent.
         if #unavailable(macOS 26) {
@@ -87,6 +96,28 @@ class TransparentTitlebarTerminalWindow: TerminalWindow {
         //
         // Even if we aren't transparent, we still set this because this becomes the
         // color of the titlebar in native fullscreen view.
+        applyTahoeTitlebarStyle()
+
+        if #available(macOS 27.0, *) {
+            // Apply right away, then again shortly after, to cover the cases where:
+            // 1. AppKit resets the style after exiting fullscreen
+            // 2. AppKit resets the style after adding or removing a tab
+            // Waiting a single 50ms tick leaves the unreduced (solid) glass
+            // visible for a few frames, which flashes the titlebar.
+            reduceTabBarBackgroundGoldenGate()
+            for delay in [0, 16, 50, 120] {
+                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(delay)) { [weak self] in
+                    self?.reduceTabBarBackgroundGoldenGate()
+                }
+            }
+        }
+
+    }
+
+    /// Applies the titlebar background styling. AppKit resets these views when the
+    /// tab group changes, so this also runs from `update()` before every redraw.
+    @available(macOS 26.0, *)
+    private func applyTahoeTitlebarStyle() {
         if let titlebarView = titlebarContainer?.firstDescendant(withClassName: "NSTitlebarView") {
             titlebarView.wantsLayer = true
 
@@ -104,16 +135,6 @@ class TransparentTitlebarTerminalWindow: TerminalWindow {
         // In all cases, we have to hide the background view since this has multiple subviews
         // that force a background color.
         titlebarBackgroundView?.isHidden = true
-
-        if #available(macOS 27.0, *) {
-            // Add some delay to cover the cases where:
-            // 1. AppKit resets the style after exiting fullscreen
-            // 2. AppKit resets the style after adding a new tab
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(50)) { [weak self] in
-                self?.reduceTabBarBackgroundGoldenGate()
-            }
-        }
-
     }
 
     @available(macOS 13.0, *)

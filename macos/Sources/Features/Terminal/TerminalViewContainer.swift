@@ -52,19 +52,29 @@ class TerminalViewContainer: NSView {
         return hostingSize
     }
 
+    private let tabStripModel = TerminalTabStripModel()
+    private lazy var tabStripView = NSHostingView(rootView: TerminalTabStripView(model: tabStripModel))
+
     private func setup() {
         addSubview(terminalView)
+        addSubview(tabStripView)
         terminalView.translatesAutoresizingMaskIntoConstraints = false
+        tabStripView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             terminalView.topAnchor.constraint(equalTo: topAnchor),
             terminalView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            terminalView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            terminalView.bottomAnchor.constraint(equalTo: tabStripView.topAnchor),
             terminalView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            tabStripView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            tabStripView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            tabStripView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            tabStripView.heightAnchor.constraint(equalToConstant: TerminalTabStripView.height),
         ])
     }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        tabStripModel.attach(to: window)
         updateGlassEffectIfNeeded()
         updateGlassEffectTopInsetIfNeeded()
     }

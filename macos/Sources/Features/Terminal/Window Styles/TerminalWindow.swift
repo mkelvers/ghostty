@@ -253,12 +253,19 @@ class TerminalWindow: NSWindow {
     }
 
     override func addTitlebarAccessoryViewController(_ childViewController: NSTitlebarAccessoryViewController) {
+        // The bottom tab strip replaces the native bar. Hide it before AppKit
+        // adds it so it never draws, even for a frame.
+        let isNativeTabBar = isTabBar(childViewController)
+        if isNativeTabBar {
+            childViewController.isHidden = true
+        }
+
         super.addTitlebarAccessoryViewController(childViewController)
 
         // Tab bar is attached as a titlebar accessory view controller (layout bottom). We
         // can detect when it is shown or hidden by overriding add/remove and searching for
         // it. This has been verified to work on macOS 12 to 26
-        if isTabBar(childViewController) {
+        if isNativeTabBar {
             childViewController.identifier = Self.tabBarIdentifier
             tabBarDidAppear()
         }

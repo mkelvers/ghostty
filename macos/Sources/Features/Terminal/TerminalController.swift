@@ -615,18 +615,6 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         }
     }
 
-    private func fixTabBar() {
-        // We do this to make sure that the tab bar will always re-composite. If we don't,
-        // then the it will "drag" pieces of the background with it when a transparent
-        // window is moved around.
-        //
-        // There might be a better way to make the tab bar "un-lazy", but I can't find it.
-        if let window = window, !window.isOpaque {
-            window.isOpaque = true
-            window.isOpaque = false
-        }
-    }
-
     @objc private func onFrameDidChange(_ notification: NSNotification) {
         // This is a huge hack to set the proper shortcut for tab selection
         // on tab reordering using the mouse. There is no event, delegate, etc.
@@ -1267,12 +1255,10 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
     override func windowDidBecomeKey(_ notification: Notification) {
         super.windowDidBecomeKey(notification)
         self.relabelTabs()
-        self.fixTabBar()
     }
 
     override func windowDidMove(_ notification: Notification) {
         super.windowDidMove(notification)
-        self.fixTabBar()
 
         // Whenever we move save our last position for the next start.
         LastWindowPosition.shared.save(window)
